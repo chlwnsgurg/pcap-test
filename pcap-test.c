@@ -64,17 +64,29 @@ int main(int argc, char* argv[]) {
 		printf("%u bytes captured\n", header->caplen);
 
 		struct libnet_ethernet_hdr* eth_hdr = packet;
-		if(eth_hdr->ether_type != 0x0008) continue;
-		struct libnet_ipv4_hdr* ip_hdr = eth_hdr+1;
+		if(eth_hdr->ether_type != ETHERTYPE_IP) continue;
+		struct libnet_ipv4_hdr* ipv4_hdr = eth_hdr+1;
+		if(ipv4_hdr->ip_p != IPTYPE_TCP) continue;
+		struct libnet_tcp_hdr* tcp_hdr = ipv4_hdr+1;
+
 			printf("Src MAC: "); 
 			print_mac(eth_hdr->ether_shost);
 			printf("Dst MAC: "); 
 			print_mac(eth_hdr->ether_dhost);
 			printf("Src IP: ");
-			print_ip(ip_hdr->ip_src);
+			print_ip(ipv4_hdr->ip_src);
 			printf("Dst IP: ");
-			print_ip(ip_hdr->ip_dst);
+			print_ip(ipv4_hdr->ip_dst);
+			printf("Src PORT: %d\nDst PORT: %d\n\n", ntohs(tcp_hdr->th_sport), ntohs(tcp_hdr->th_dport));
+			
+			u_int8_t* pay = tcp_hdr+1;
+			u_int16_t pay_len = ntohs(ipv4_hdr->ip_len)-LIBNET_IPV4_H-LIBNET_TCP_H;
+			if(pay_len > 20) pay_len = 20;
+		
+			printf("Payload: ");
+			if(pay_len <= 0) printf("Empty Packet!");
+			else for(int i=0; i<pay_len; i++) printf("%02x", pay+i);
+			printf("\n\n\n");
 	}
-
 	pcap_close(pcap);
 }
