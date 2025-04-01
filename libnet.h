@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include <netinet/in.h>
 
-
-
 /* ethernet addresses are 6 octets long */
 #ifndef ETHER_ADDR_LEN
 #define ETHER_ADDR_LEN      0x6

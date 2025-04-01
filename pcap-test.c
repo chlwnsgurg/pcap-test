@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include "libnet.h"
+#include "endian.h"
 
 void usage() {
 	printf("syntax: pcap-test <interface>\n");
@@ -61,13 +62,14 @@ int main(int argc, char* argv[]) {
 			printf("pcap_next_ex return %d(%s)\n", res, pcap_geterr(pcap));
 			break;
 		}
-		printf("%u bytes captured\n", header->caplen);
 
 		struct libnet_ethernet_hdr* eth_hdr = packet;
-		if(eth_hdr->ether_type != ETHERTYPE_IP) continue;
+		if(eth_hdr->ether_type != ETHERTYPE_IP ) continue;
 		struct libnet_ipv4_hdr* ipv4_hdr = eth_hdr+1;
 		if(ipv4_hdr->ip_p != IPTYPE_TCP) continue;
 		struct libnet_tcp_hdr* tcp_hdr = ipv4_hdr+1;
+
+		printf("%u bytes captured\n", header->caplen);
 
 			printf("Src MAC: "); 
 			print_mac(eth_hdr->ether_shost);
