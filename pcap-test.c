@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include "libnet.h"
-#include "endian.h"
 
 void usage() {
 	printf("syntax: pcap-test <interface>\n");
@@ -62,14 +61,13 @@ int main(int argc, char* argv[]) {
 			printf("pcap_next_ex return %d(%s)\n", res, pcap_geterr(pcap));
 			break;
 		}
+		printf("%u bytes captured\n", header->caplen);
 
 		struct libnet_ethernet_hdr* eth_hdr = packet;
-		if(eth_hdr->ether_type != ETHERTYPE_IP ) continue;
+		if(eth_hdr->ether_type != htons(ETHERTYPE_IP)) continue;
 		struct libnet_ipv4_hdr* ipv4_hdr = eth_hdr+1;
 		if(ipv4_hdr->ip_p != IPTYPE_TCP) continue;
 		struct libnet_tcp_hdr* tcp_hdr = ipv4_hdr+1;
-
-		printf("%u bytes captured\n", header->caplen);
 
 			printf("Src MAC: "); 
 			print_mac(eth_hdr->ether_shost);
@@ -82,12 +80,14 @@ int main(int argc, char* argv[]) {
 			printf("Src PORT: %d\nDst PORT: %d\n\n", ntohs(tcp_hdr->th_sport), ntohs(tcp_hdr->th_dport));
 			
 			u_int8_t* pay = tcp_hdr+1;
-			u_int16_t pay_len = ntohs(ipv4_hdr->ip_len)-LIBNET_IPV4_H-LIBNET_TCP_H;
+			u_int16_t pay_len = ntohs(ipv4_hdr->ip_len)-(ipv4_hdr->ip_hl*4)-(tcp_hdr->th_off*4);
+			printf("IP Header Length: %d bytes\n", (ipv4_hdr->ip_hl) * 4);
+			printf("TCP Header Length: %d bytes\n", (tcp_hdr->th_off) * 4);
 			if(pay_len > 20) pay_len = 20;
 		
 			printf("Payload: ");
 			if(pay_len <= 0) printf("Empty Packet!");
-			else for(int i=0; i<pay_len; i++) printf("%02x", pay+i);
+			else for(int i=0; i<pay_len; i++) printf("%02x", pay[i]);
 			printf("\n\n\n");
 	}
 	pcap_close(pcap);
